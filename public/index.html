@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+	<link rel="stylesheet" href="./styles.css">
+    <title>Система тестирования ИНК-ТКРС</title>
+    <style>
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Экран входа -->
+        <div id="loginContainer" class="card">
+            <h1 class="text-center">Система тестирования ИНК-ТКРС</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Имя пользователя:</label>
+                    <input type="text" id="username" required>
+                </div>
+                
+                <div id="passwordField" class="form-group hidden">
+                    <label for="password">Пароль администратора:</label>
+                    <input type="password" id="password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Войти</button>
+            </form>
+        </div>
+
+        <!-- Основное приложение -->
+        <div id="appContainer" class="hidden">
+            <!-- Шапка -->
+            <div class="user-bar">
+                <h2 id="userGreeting"></h2>
+                <button id="logoutBtn" class="btn btn-danger">Выйти</button>
+            </div>
+            
+            <!-- Основной экран -->
+            <div id="mainScreen">
+                <div class="card">
+                    <h2 class="text-center">Доступные тесты</h2>
+                    <div id="testList"></div>
+                    <button id="startTest" class="btn btn-primary">Начать тестирование</button>
+                    <button id="adminPanelBtn" class="btn btn-secondary hidden">Панель администратора</button>
+                </div>
+            </div>
+            
+            <!-- Экран тестирования -->
+            <div id="testContainer" class="hidden">
+                <div class="card">
+                    <div class="timer-container">
+                        <div id="timeLeft" class="timer">20:00</div>
+                        <div class="progress-container">
+                            <div id="progressBar" class="progress-bar"></div>
+                        </div>
+                    </div>
+                    
+                    <h2 id="testTitle"></h2>
+                    <div id="questionsContainer"></div>
+                    
+                    <div class="mobile-stack mt-3">
+                        <button id="submitTest" class="btn btn-primary">Завершить тест</button>
+                        <button id="backBtn" class="btn btn-outline">Назад</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Результаты -->
+            <div id="resultsContainer" class="hidden">
+                <div class="card">
+                    <h2>Результаты тестирования</h2>
+                    <div id="results"></div>
+                    
+                    <div class="mobile-stack mt-3">
+                        <button id="saveResults" class="btn btn-primary">Сохранить результаты</button>
+                        <button id="newTest" class="btn btn-secondary">Пройти другой тест</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Админ-панель -->
+            <div id="adminPanel" class="hidden">
+                <div class="card">
+                    <h2>Панель администратора</h2>
+                    
+                    <div class="mobile-stack mb-3">
+                        <button id="showAddTest" class="btn btn-primary">Добавить тест</button>
+                        <button id="showTestList" class="btn btn-secondary">Список тестов</button>
+                        <button id="backToMain" class="btn btn-outline">На главную</button>
+                    </div>
+                    
+                    <!-- Форма добавления теста -->
+                    <div id="addTestForm" class="hidden">
+                        <h3>Добавить новый тест</h3>
+                        
+                        <div class="form-group">
+                            <label>Название теста:</label>
+                            <input type="text" id="testTitleInput" required>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Время (минуты):</label>
+                                <input type="number" id="testTimeLimit" min="1" value="10" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Вопросы (JSON):</label>
+                            <textarea id="testJson" rows="10" required placeholder='[
+  {
+    "text": "Текст вопроса",
+    "options": ["Вариант 1", "Вариант 2"],
+    "correct": 0
+  }
+]'></textarea>
+                        </div>
+                        
+                        <button id="uploadTest" class="btn btn-primary">Сохранить тест</button>
+                        
+                        <div class="form-group mt-3">
+                            <label>Или загрузить из файла:</label>
+                            <input type="file" id="testFile" accept=".json">
+                            <button id="loadFromFile" class="btn btn-secondary mt-2">Загрузить</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Список тестов -->
+                    <div id="adminTestList" class="hidden">
+                        <h3>Список тестов</h3>
+                        <div id="testsContainer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./app.js"></script>
+	
+</body>
+</html>
