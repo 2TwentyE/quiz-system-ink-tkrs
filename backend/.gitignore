@@ -1,0 +1,16 @@
+# Node.js
+node_modules/
+.env
+*.log
+
+# Системные файлы
+.DS_store
+Thumbs.db
+
+#Резервные файлы редакторов
+*.swp
+*.swo
+*.bak
+
+#Файлы railway или других CI/CD систем
+railway.json
