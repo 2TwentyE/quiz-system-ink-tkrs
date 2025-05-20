@@ -235,7 +235,7 @@ function handleLogin(e) {
         alert('Введите имя пользователя');
     }
 
-    async function registerUser(name, email = '') {
+async function registerUser(name, email = '') {
     try {
         const response = await fetch('https://quiz-system-ink-tkrs-production.up.railway.app/api/users/register', {
             method: 'POST',
@@ -243,9 +243,13 @@ function handleLogin(e) {
             body: JSON.stringify({ name, email })
         });
         const data = await response.json();
-        console.log('Пользователь зарегистрирован:', data);
+        if (response.ok) {
+            console.log('Пользователь зарегистрирован:', data);
+        } else {
+            console.warn('Ошибка регистрации:', data.message);
+        }
     } catch (err) {
-        console.error('Ошибка регистрации:', err);
+        console.error('Ошибка при регистрации:', err);
     }
 }
 }
