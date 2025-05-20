@@ -227,10 +227,27 @@ function handleLogin(e) {
         store.currentUser = username;
         store.isAdmin = false;
         store.saveToLocalStorage();
+
+        registerUser(username);
+
         showApp();
     } else {
         alert('Введите имя пользователя');
     }
+
+    async function registerUser(name, email = '') {
+    try {
+        const response = await fetch('https://quiz-system-ink-tkrs-production.up.railway.app/api/users/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, email })
+        });
+        const data = await response.json();
+        console.log('Пользователь зарегистрирован:', data);
+    } catch (err) {
+        console.error('Ошибка регистрации:', err);
+    }
+}
 }
 
 // Обработка выхода
