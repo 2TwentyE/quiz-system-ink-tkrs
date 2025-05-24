@@ -4,6 +4,10 @@ const pool = require('../db');
 exports.registerUser = async (req, res) => {
   const { name, email } = req.body;
 
+  if (!name || !email) {
+    return res.status(400).json({ message: 'Имя и email обязательны' });
+  }
+
   try {
     const existing = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
@@ -22,12 +26,13 @@ exports.registerUser = async (req, res) => {
   }
 };
 
-// Получить всех пользователей
+// Получение всех пользователей
 exports.getUsers = async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM users');
     res.json(result.rows);
   } catch (err) {
+    console.error('Ошибка при получении пользователей:', err);
     res.status(500).json({ message: 'Ошибка сервера' });
   }
 };

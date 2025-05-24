@@ -123,6 +123,7 @@ const elements = {
     appContainer: document.getElementById('appContainer'),
     loginForm: document.getElementById('loginForm'),
     usernameInput: document.getElementById('username'),
+    emailInput: document.getElementById('email'),
     passwordField: document.getElementById('passwordField'),
     passwordInput: document.getElementById('password'),
     userGreeting: document.getElementById('userGreeting'),
@@ -160,6 +161,7 @@ const elements = {
 function init() {
     // Проверка авторизации при загрузке
     if (store.currentUser) {
+        registerUser(username, email);
         showApp();
     }
     
@@ -209,6 +211,7 @@ function handleLogin(e) {
     e.preventDefault();
     
     const username = elements.usernameInput.value.trim();
+    const email = elements.emailInput.value.trim();
     const password = elements.passwordInput.value;
     
     if (username.toLowerCase() === 'admin') {
