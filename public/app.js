@@ -240,7 +240,7 @@ function handleLogin(e) {
 
 async function registerUser(name, email = '') {
     try {
-        const response = await fetch('backend-production-5f60.up.railway.app/api/users/register', {
+        const response = await fetch('https://backend-production-5f60.up.railway.app/api/users/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name, email })
