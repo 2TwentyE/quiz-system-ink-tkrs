@@ -1,27 +1,32 @@
-const fs = require('fs');
-const path = require('path');
-const dbPath = path.join(__dirname, '../db.json');
+const pool = require('../db');
 
-function loadDb() {
-  return JSON.parse(fs.readFileSync(dbPath));
-}
+exports.saveResult = async (req, rea) => {
+  const { userName, testName, date, score, correct, total, answers } = req.body;
 
-function saveDb(data) {
-  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
-}
+  if (!userName || !testName || !date) {
+    return res.status(400).json({ message: 'Недостаточно данных' });
+  }
 
-exports.saveResult = (req, res) => {
-  const result = req.body;
-  const db = loadDb();
+  try {
+    const result = await pool.query(
+      `INSERT INTO results
+      (userName, testName, date, score, correct, total, answers)
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      RETURNING *`,
+      [userName, testName, date, score, correct, total, answers]
+    );
 
-  result.id = Date.now();
-  db.results.push(result);
-  saveDb(db);
-
-  res.status(201).json({ message: 'Результат сохранён', result });
+    res.status(201).json({ message: 'Результат сохранен', result: result.rows[0] });
+  } catch (err) {
+    console.error('Ошибка сохранения результата:', err);
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
 };
 
-exports.getResults = (req, res) => {
-  const db = loadDb();
-  res.json(db.results);
+exports.getResults = async (req, res) => {
+  try {
+    const results = await pool.query('SELECT * FROM results ORDER BY date DESC');
+  } catch (err) {
+    res.status(500).json({ message: 'Ошибка сервера' });
+  }
 };
