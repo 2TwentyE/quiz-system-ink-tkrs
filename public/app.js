@@ -1,9 +1,7 @@
- // Хранилище данных
+// Хранилище данных (работа с API)
 const store = {
-    tests: {},
     currentTest: null,
     userAnswers: {},
-    testResults: [],
     currentUser: null,
     isAdmin: false,
     timer: null,
@@ -12,57 +10,8 @@ const store = {
     
     // Инициализация хранилища
     init() {
-        this.loadFromLocalStorage();
         this.checkAuth();
     },
-    
-    // Сохранение данных в localStorage
-   saveToLocalStorage() {
-    try {
-        localStorage.setItem('quizSystemTests', JSON.stringify(this.tests));
-        localStorage.setItem('quizSystemResults', JSON.stringify(this.testResults));
-        
-        if (this.currentUser) {
-            const authData = {
-                user: this.currentUser,
-                isAdmin: this.isAdmin,
-                expires: Date.now() + 8 * 60 * 60 * 1000
-            };
-            localStorage.setItem('quizSystemAuth', JSON.stringify(authData));
-        }
-        console.log("Данные сохранены в localStorage"); // Для отладки
-    } catch (e) {
-        console.error("Ошибка сохранения в localStorage:", e);
-    }
-	},
-    
-    // Загрузка данных из localStorage
-	 loadFromLocalStorage() {
-		try {
-			const tests = localStorage.getItem('quizSystemTests');
-			if (tests) {
-				this.tests = JSON.parse(tests);
-				console.log("Загружено тестов:", Object.keys(this.tests).length);
-			}
-			
-			const results = localStorage.getItem('quizSystemResults');
-			if (results) this.testResults = JSON.parse(results);
-			
-			const auth = localStorage.getItem('quizSystemAuth');
-			if (auth) {
-				const { user, isAdmin, expires } = JSON.parse(auth);
-				if (expires > Date.now()) {
-					this.currentUser = user;
-					this.isAdmin = isAdmin;
-				}
-			}
-		} catch (e) {
-			console.error("Ошибка загрузки из localStorage:", e);
-			// Сброс при ошибке
-			this.tests = {};
-			this.testResults = [];
-		}
-	},
     
     // Очистка данных авторизации
     clearAuth() {
@@ -71,49 +20,127 @@ const store = {
         this.isAdmin = false;
     },
     
-    // Добавление теста
-    addTest(test) {
-    if (!test?.title) {
-        console.error("Не указано название теста");
-        return false;
-    }
-    
-    // Нормализация структуры теста
-    const normalizedTest = {
-        title: test.title.trim(),
-        timeLimit: parseInt(test.timeLimit) || 10,
-        questions: test.questions.map(q => ({
-            text: q.text.trim(),
-            options: q.options.map(opt => opt.trim()),
-            correct: parseInt(q.correct)
-        }))
-    };
-    
-    this.tests[normalizedTest.title] = normalizedTest;
-    this.saveToLocalStorage();
-    console.log("Тест сохранён:", normalizedTest.title); // Для отладки
-    return true;
-	},
-    
-    // Удаление теста
-    deleteTest(title) {
-        if (this.tests[title]) {
-            delete this.tests[title];
-            this.saveToLocalStorage();
-            return true;
+    // Регистрация пользователя
+    async registerUser(username, email, isAdmin = false) {
+        try {
+            const response = await fetch('https://backend-production-5f60.up.railway.app/api/users/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    name: username, 
+                    email: email,
+                    is_admin: isAdmin 
+                })
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Ошибка регистрации');
+            }
+            
+            return await response.json();
+        } catch (err) {
+            console.error('Ошибка регистрации:', err);
+            throw err;
         }
-        return false;
     },
-    
+
+    // Получение пользователя
+    async getUser(username) {
+        try {
+            const response = await fetch(`https://backend-production-5f60.up.railway.app/api/users/${username}`);
+            if (response.ok) {
+                return await response.json();
+            }
+            return null;
+        } catch (err) {
+            console.error('Ошибка получения пользователя:', err);
+            return null;
+        }
+    },
+
+    // Добавление теста
+    async addTest(test) {
+        try {
+            const response = await fetch('https://backend-production-5f60.up.railway.app/api/tests', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(test)
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Ошибка сохранения теста');
+            }
+            
+            return await response.json();
+        } catch (err) {
+            console.error('Ошибка добавления теста:', err);
+            throw err;
+        }
+    },
+
+    // Получение всех тестов
+    async getTests() {
+        try {
+            const response = await fetch('https://backend-production-5f60.up.railway.app/api/tests');
+            if (response.ok) {
+                return await response.json();
+            }
+            return [];
+        } catch (err) {
+            console.error('Ошибка получения тестов:', err);
+            return [];
+        }
+    },
+
+    // Удаление теста
+    async deleteTest(testId) {
+        try {
+            const response = await fetch(`https://backend-production-5f60.up.railway.app/api/tests/${testId}`, {
+                method: 'DELETE'
+            });
+            
+            return response.ok;
+        } catch (err) {
+            console.error('Ошибка удаления теста:', err);
+            return false;
+        }
+    },
+
     // Добавление результата
-    addResult(result) {
-        this.testResults.push(result);
-        this.saveToLocalStorage();
+    async addResult(result) {
+        try {
+            const response = await fetch('https://backend-production-5f60.up.railway.app/api/results', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(result)
+            });
+            
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.message || 'Ошибка сохранения результата');
+            }
+            
+            return await response.json();
+        } catch (err) {
+            console.error('Ошибка сохранения результата:', err);
+            throw err;
+        }
     },
-    
+
     // Получение результатов пользователя
-    getUserResults(username) {
-        return this.testResults.filter(r => r.userName === username);
+    async getUserResults(userId) {
+        try {
+            const response = await fetch(`https://backend-production-5f60.up.railway.app/api/results/user/${userId}`);
+            if (response.ok) {
+                return await response.json();
+            }
+            return [];
+        } catch (err) {
+            console.error('Ошибка получения результатов:', err);
+            return [];
+        }
     }
 };
 
@@ -159,13 +186,7 @@ const elements = {
 
 // Инициализация приложения
 function init() {
-    // Проверка авторизации при загрузке
-    if (store.currentUser) {
-        registerUser(username, email);
-        showApp();
-    }
-    
-    // Настройка событий
+    store.init();
     setupEventListeners();
 }
 
@@ -173,7 +194,7 @@ function init() {
 function showApp() {
     elements.loginContainer.classList.add('hidden');
     elements.appContainer.classList.remove('hidden');
-    elements.userGreeting.textContent = `Добро пожаловать, ${store.currentUser}${store.isAdmin ? ' (администратор)' : ''}`;
+    elements.userGreeting.textContent = `Добро пожаловать, ${store.currentUser.name}${store.isAdmin ? ' (администратор)' : ''}`;
     elements.adminPanelBtn.classList.toggle('hidden', !store.isAdmin);
     renderTestList();
 }
@@ -207,54 +228,62 @@ function setupEventListeners() {
 }
 
 // Обработка входа
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     
     const username = elements.usernameInput.value.trim();
     const email = elements.emailInput.value.trim();
     const password = elements.passwordInput.value;
-    
-    if (username.toLowerCase() === 'admin') {
-        if (password === 'admin123') {
-            store.currentUser = username;
-            store.isAdmin = true;
-            store.saveToLocalStorage();
-            showApp();
-            return;
-        }
-        alert('Неверный пароль администратора');
-        return;
-    }
-    
-    if (username && email) {
-        store.currentUser = username;
-        store.isAdmin = false;
-        store.saveToLocalStorage();
 
-        registerUser(username, email);
-
-        showApp();
-    } else {
-        alert('Введите имя и email');
-    }
-
-async function registerUser(name, email = '') {
     try {
-        const response = await fetch('https://backend-production-5f60.up.railway.app/api/users/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name, email })
-        });
-        const data = await response.json();
-        if (response.ok) {
-            console.log('Пользователь зарегистрирован:', data);
+        // Админский вход
+        if (username.toLowerCase() === 'admin') {
+            if (password === 'admin123') {
+                let user = await store.getUser('admin');
+                if (!user) {
+                    user = await store.registerUser('admin', 'admin@example.com', true);
+                }
+                store.currentUser = user;
+                store.isAdmin = true;
+                
+                // Сохраняем сессию
+                const authData = {
+                    user: user,
+                    isAdmin: true,
+                    expires: Date.now() + 8 * 60 * 60 * 1000
+                };
+                localStorage.setItem('quizSystemAuth', JSON.stringify(authData));
+                
+                showApp();
+                return;
+            }
+            throw new Error('Неверный пароль администратора');
+        }
+        
+        // Обычный пользователь
+        if (username && email) {
+            let user = await store.getUser(username);
+            if (!user) {
+                user = await store.registerUser(username, email, false);
+            }
+            store.currentUser = user;
+            store.isAdmin = false;
+            
+            // Сохраняем сессию
+            const authData = {
+                user: user,
+                isAdmin: false,
+                expires: Date.now() + 8 * 60 * 60 * 1000
+            };
+            localStorage.setItem('quizSystemAuth', JSON.stringify(authData));
+            
+            showApp();
         } else {
-            console.warn('Ошибка регистрации:', data.message);
+            throw new Error('Введите имя и email');
         }
     } catch (err) {
-        console.error('Ошибка при регистрации:', err);
+        alert(err.message);
     }
-}
 }
 
 // Обработка выхода
@@ -263,90 +292,109 @@ function handleLogout() {
     elements.appContainer.classList.add('hidden');
     elements.loginContainer.classList.remove('hidden');
     elements.usernameInput.value = '';
+    elements.emailInput.value = '';
     elements.passwordInput.value = '';
 }
 
 // Отображение списка тестов
-function renderTestList() {
-	console.log("Текущие тесты:", store.tests);
-    elements.testList.innerHTML = '';
-	
-    const testKeys = Object.keys(store.tests);
-    if (testKeys.length === 0) {
-        elements.testList.innerHTML = '<p>Нет доступных тестов</p>';
-        elements.startTestBtn.disabled = true;
-        return;
+async function renderTestList() {
+    elements.testList.innerHTML = '<p>Загрузка тестов...</p>';
+    
+    try {
+        const tests = await store.getTests();
+        
+        if (tests.length === 0) {
+            elements.testList.innerHTML = '<p>Нет доступных тестов</p>';
+            elements.startTestBtn.disabled = true;
+            return;
+        }
+        
+        elements.startTestBtn.disabled = false;
+        
+        const list = document.createElement('ul');
+        list.style.listStyle = 'none';
+        
+        tests.forEach(test => {
+            const item = document.createElement('li');
+            item.innerHTML = `
+                <div class="test-item">
+                    <strong>${escapeHtml(test.title)}</strong><br>
+                    <small>${test.questions.length} вопросов, ${test.time_limit || 10} мин</small>
+                </div>
+            `;
+            list.appendChild(item);
+        });
+        
+        elements.testList.innerHTML = '';
+        elements.testList.appendChild(list);
+    } catch (err) {
+        elements.testList.innerHTML = '<p>Ошибка загрузки тестов</p>';
+        console.error('Ошибка рендеринга тестов:', err);
     }
-    
-    elements.startTestBtn.disabled = false;
-    const list = document.createElement('ul');
-    list.style.listStyle = 'none';
-    
-    testKeys.forEach(title => {
-        const test = store.tests[title];
-        const item = document.createElement('li');
-        item.textContent = `${title} (${test.questions.length} вопросов, ${test.timeLimit || 1} мин)`;
-        list.appendChild(item);
-    });
-    
-    elements.testList.appendChild(list);
 }
 
 // Начало теста
-function startTest() {
-    const testKeys = Object.keys(store.tests);
-    if (testKeys.length === 0) return;
-    
-    // Выбор случайного теста
-    const randomKey = testKeys[Math.floor(Math.random() * testKeys.length)];
-    store.currentTest = store.tests[randomKey];
-    store.userAnswers = {};
-    
-    // Настройка таймера
-    startTimer(store.currentTest.timeLimit || 1);
-    
-    // Отображение теста
-    elements.testTitle.textContent = store.currentTest.title;
-    elements.questionsContainer.innerHTML = '';
-    
-    store.currentTest.questions.forEach((question, index) => {
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'question';
-        questionDiv.innerHTML = `<h3>Вопрос ${index + 1}: ${escapeHtml(question.text)}</h3>`;
+async function startTest() {
+    try {
+        const tests = await store.getTests();
+        if (tests.length === 0) return;
         
-        const optionsDiv = document.createElement('div');
-        optionsDiv.className = 'options';
+        // Выбор случайного теста
+        const randomTest = tests[Math.floor(Math.random() * tests.length)];
+        store.currentTest = randomTest;
+        store.userAnswers = {};
         
-        question.options.forEach((option, optionIndex) => {
-            const optionDiv = document.createElement('div');
-            optionDiv.className = 'option';
+        // Настройка таймера
+        startTimer(store.currentTest.time_limit || 10);
+        
+        // Отображение теста
+        elements.testTitle.textContent = store.currentTest.title;
+        elements.questionsContainer.innerHTML = '';
+        
+        const questions = Array.isArray(store.currentTest.questions) ? 
+            store.currentTest.questions : JSON.parse(store.currentTest.questions);
+        
+        questions.forEach((question, index) => {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question';
+            questionDiv.innerHTML = `<h3>Вопрос ${index + 1}: ${escapeHtml(question.text)}</h3>`;
             
-            const radio = document.createElement('input');
-            radio.type = 'radio';
-            radio.name = `question_${index}`;
-            radio.id = `q${index}_opt${optionIndex}`;
-            radio.value = optionIndex;
+            const optionsDiv = document.createElement('div');
+            optionsDiv.className = 'options';
             
-            radio.addEventListener('change', () => {
-                store.userAnswers[index] = parseInt(optionIndex);
+            question.options.forEach((option, optionIndex) => {
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'option';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = `question_${index}`;
+                radio.id = `q${index}_opt${optionIndex}`;
+                radio.value = optionIndex;
+                
+                radio.addEventListener('change', () => {
+                    store.userAnswers[index] = parseInt(optionIndex);
+                });
+                
+                const label = document.createElement('label');
+                label.htmlFor = radio.id;
+                label.textContent = escapeHtml(option);
+                
+                optionDiv.appendChild(radio);
+                optionDiv.appendChild(label);
+                optionsDiv.appendChild(optionDiv);
             });
             
-            const label = document.createElement('label');
-            label.htmlFor = radio.id;
-            label.textContent = escapeHtml(option);
-            
-            optionDiv.appendChild(radio);
-            optionDiv.appendChild(label);
-            optionsDiv.appendChild(optionDiv);
+            questionDiv.appendChild(optionsDiv);
+            elements.questionsContainer.appendChild(questionDiv);
         });
         
-        questionDiv.appendChild(optionsDiv);
-        elements.questionsContainer.appendChild(questionDiv);
-    });
-    
-    // Переключение экранов
-    document.getElementById('mainScreen').classList.add('hidden');
-    elements.testContainer.classList.remove('hidden');
+        // Переключение экранов
+        document.getElementById('mainScreen').classList.add('hidden');
+        elements.testContainer.classList.remove('hidden');
+    } catch (err) {
+        alert('Ошибка начала теста: ' + err.message);
+    }
 }
 
 // Таймер теста
@@ -408,10 +456,13 @@ function updateTimerDisplay() {
 }
 
 // Завершение теста
-function submitTest() {
+async function submitTest() {
     stopTimer();
     
-    const totalQuestions = store.currentTest.questions.length;
+    const questions = Array.isArray(store.currentTest.questions) ? 
+        store.currentTest.questions : JSON.parse(store.currentTest.questions);
+    
+    const totalQuestions = questions.length;
     const answeredQuestions = Object.keys(store.userAnswers).length;
     
     // Проверка на все ответы
@@ -425,7 +476,7 @@ function submitTest() {
     
     // Подсчет правильных ответов
     let correct = 0;
-    store.currentTest.questions.forEach((question, index) => {
+    questions.forEach((question, index) => {
         if (typeof store.userAnswers[index] !== 'undefined' && 
             store.userAnswers[index] === question.correct) {
             correct++;
@@ -436,47 +487,38 @@ function submitTest() {
     
     // Сохранение результата
     const result = {
-        testName: store.currentTest.title,
-        userName: store.currentUser,
-        date: new Date().toLocaleString(),
+        user_id: store.currentUser.id,
+        test_id: store.currentTest.id,
         score: score,
-        correct: correct,
-        total: totalQuestions,
-        answers: {...store.userAnswers}
+        correct_answers: correct,
+        total_questions: totalQuestions,
+        answers: store.userAnswers
     };
     
-    store.addResult(result) {
-        fetch('https://backend-production-5f60.up.railway.app/api/results', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(result)
-        })
-        .then(res => res.json())
-        .then(data => {
-            console.log('Результат сохранен', data);
-        })
-        .catch(err => {
-            console.error('Ошибка при отправке результата', err);
-        })
-    };
-    showResults(result);
+    try {
+        await store.addResult(result);
+        showResults(result, questions);
+    } catch (err) {
+        alert('Ошибка сохранения результата: ' + err.message);
+        showResults(result, questions); // Все равно показываем результаты
+    }
 }
 
 // Показать результаты
-function showResults(result) {
+function showResults(result, questions) {
     elements.testContainer.classList.add('hidden');
     elements.resultsContainer.classList.remove('hidden');
     
     elements.resultsDiv.innerHTML = `
         <div class="result-item">
-            <p><strong>Тест:</strong> ${escapeHtml(result.testName)}</p>
-            <p><strong>Результат:</strong> ${result.score}% (${result.correct} из ${result.total})</p>
-            <p><strong>Дата:</strong> ${escapeHtml(result.date)}</p>
+            <p><strong>Тест:</strong> ${escapeHtml(store.currentTest.title)}</p>
+            <p><strong>Результат:</strong> ${result.score}% (${result.correct_answers} из ${result.total_questions})</p>
+            <p><strong>Дата:</strong> ${new Date().toLocaleString()}</p>
         </div>
         <h3>Детализация ответов:</h3>
     `;
     
-    store.currentTest.questions.forEach((question, index) => {
+    questions.forEach((question, index) => {
         const isCorrect = typeof store.userAnswers[index] !== 'undefined' && 
                          store.userAnswers[index] === question.correct;
         const userAnswer = typeof store.userAnswers[index] !== 'undefined' 
@@ -511,133 +553,145 @@ function showAddTestForm() {
     elements.testJson.value = '';
 }
 
-function showAdminTestList() {
+async function showAdminTestList() {
     elements.addTestForm.classList.add('hidden');
     elements.adminTestList.classList.remove('hidden');
-    elements.testsContainer.innerHTML = '';
+    elements.testsContainer.innerHTML = '<p>Загрузка тестов...</p>';
     
-    const testKeys = Object.keys(store.tests);
-    if (testKeys.length === 0) {
-        elements.testsContainer.innerHTML = '<p>Нет доступных тестов</p>';
+    try {
+        const tests = await store.getTests();
+        
+        if (tests.length === 0) {
+            elements.testsContainer.innerHTML = '<p>Нет доступных тестов</p>';
+            return;
+        }
+        
+        elements.testsContainer.innerHTML = '';
+        
+        tests.forEach(test => {
+            const questions = Array.isArray(test.questions) ? 
+                test.questions : JSON.parse(test.questions);
+                
+            const testDiv = document.createElement('div');
+            testDiv.className = 'result-item';
+            testDiv.innerHTML = `
+                <h3>${escapeHtml(test.title)}</h3>
+                <p>Вопросов: ${questions.length}</p>
+                <p>Время: ${test.time_limit || 10} мин</p>
+                <button class="btn btn-danger delete-test" data-id="${test.id}" data-title="${escapeHtml(test.title)}">Удалить</button>
+            `;
+            elements.testsContainer.appendChild(testDiv);
+        });
+        
+        // Обработчики удаления
+        document.querySelectorAll('.delete-test').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const testId = this.dataset.id;
+                const title = this.dataset.title;
+                if (confirm(`Удалить тест "${title}"?`)) {
+                    if (await store.deleteTest(testId)) {
+                        showAdminTestList();
+                    } else {
+                        alert('Ошибка удаления теста');
+                    }
+                }
+            });
+        });
+    } catch (err) {
+        elements.testsContainer.innerHTML = '<p>Ошибка загрузки тестов</p>';
+        console.error('Ошибка загрузки тестов:', err);
+    }
+}
+
+async function uploadTest() {
+    if (!elements.testTitleInput.value.trim()) {
+        alert('Введите название теста');
         return;
     }
     
-    testKeys.forEach(title => {
-        const test = store.tests[title];
-        const testDiv = document.createElement('div');
-        testDiv.className = 'result-item';
-        testDiv.innerHTML = `
-            <h3>${escapeHtml(title)}</h3>
-            <p>Вопросов: ${test.questions.length}</p>
-            <p>Время: ${test.timeLimit || 10} мин</p>
-            <button class="btn btn-danger delete-test" data-title="${escapeHtml(title)}">Удалить</button>
-        `;
-        elements.testsContainer.appendChild(testDiv);
-    });
-    
-    // Обработчики удаления
-    document.querySelectorAll('.delete-test').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const title = this.dataset.title;
-            if (confirm(`Удалить тест "${title}"?`)) {
-                if (store.deleteTest(title)) {
-                    showAdminTestList();
-                }
+    try {
+        const questions = JSON.parse(elements.testJson.value);
+        if (!Array.isArray(questions) || questions.length === 0) {
+            throw new Error('Должен быть хотя бы один вопрос');
+        }
+        
+        questions.forEach((q, i) => {
+            if (!q.text || !q.options || !Array.isArray(q.options) || q.correct === undefined) {
+                throw new Error(`Ошибка в вопросе ${i + 1}: неверный формат`);
+            }
+            if (q.correct < 0 || q.correct >= q.options.length) {
+                throw new Error(`Ошибка в вопросе ${i + 1}: некорректный правильный ответ`);
             }
         });
-    });
+        
+        const test = {
+            title: elements.testTitleInput.value.trim(),
+            time_limit: parseInt(elements.testTimeLimit.value) || 10,
+            questions: questions
+        };
+        
+        await store.addTest(test);
+        alert(`Тест "${test.title}" успешно сохранен!`);
+        renderTestList();
+        showAdminTestList();
+    } catch (e) {
+        alert(`Ошибка: ${e.message}`);
+    }
 }
 
-		function uploadTest() {
-			if (!elements.testTitleInput.value.trim()) {
-				alert('Введите название теста');
-				return;
-			}
-			
-			try {
-				const questions = JSON.parse(elements.testJson.value);
-				if (!Array.isArray(questions) || questions.length === 0) {
-					throw new Error('Должен быть хотя бы один вопрос');
-				}
-				
-				questions.forEach((q, i) => {
-					if (!q.text || !q.options || !Array.isArray(q.options) || q.correct === undefined) {
-						throw new Error(`Ошибка в вопросе ${i + 1}: неверный формат`);
-					}
-					if (q.correct < 0 || q.correct >= q.options.length) {
-						throw new Error(`Ошибка в вопросе ${i + 1}: некорректный правильный ответ`);
-					}
-				});
-				
-				const test = {
-					title: elements.testTitleInput.value.trim(),
-					timeLimit: parseInt(elements.testTimeLimit.value) || 10,
-					questions: questions
-				};
-				
-				if (store.addTest(test)) {
-					alert(`Тест "${test.title}" успешно сохранен!`);
-					renderTestList(); // Обновляем список тестов
-					showAdminTestList(); // Обновляем админ-панель
-				}
-			} catch (e) {
-				alert(`Ошибка: ${e.message}`);
-			}
-		}
+function loadTestFromFile() {
+    if (!elements.testFile.files.length) {
+        alert('Выберите файл');
+        return;
+    }
 
-		function loadTestFromFile() {
-			if (!elements.testFile.files.length) {
-				alert('Выберите файл');
-				return;
-			}
+    const file = elements.testFile.files[0];
+    
+    if (!file.name.endsWith('.json')) {
+        alert('Пожалуйста, выберите файл в формате JSON');
+        return;
+    }
 
-			const file = elements.testFile.files[0];
-			
-			if (!file.name.endsWith('.json')) {
-				alert('Пожалуйста, выберите файл в формате JSON');
-				return;
-			}
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const testData = JSON.parse(e.target.result);
+            
+            // Валидация структуры теста
+            if (!testData.title || !testData.questions || !Array.isArray(testData.questions)) {
+                throw new Error('Неверный формат теста: должен содержать title и questions');
+            }
 
-			const reader = new FileReader();
-			reader.onload = function(e) {
-				try {
-					const testData = JSON.parse(e.target.result);
-					
-					// Валидация структуры теста
-					if (!testData.title || !testData.questions || !Array.isArray(testData.questions)) {
-						throw new Error('Неверный формат теста: должен содержать title и questions');
-					}
+            // Проверка каждого вопроса
+            testData.questions.forEach((q, i) => {
+                if (!q.text || !q.options || !Array.isArray(q.options) || q.correct === undefined) {
+                    throw new Error(`Ошибка в вопросе ${i + 1}: неверный формат`);
+                }
+                if (q.correct < 0 || q.correct >= q.options.length) {
+                    throw new Error(`Ошибка в вопросе ${i + 1}: некорректный правильный ответ`);
+                }
+            });
 
-					// Проверка каждого вопроса
-					testData.questions.forEach((q, i) => {
-						if (!q.text || !q.options || !Array.isArray(q.options) || q.correct === undefined) {
-							throw new Error(`Ошибка в вопросе ${i + 1}: неверный формат`);
-						}
-						if (q.correct < 0 || q.correct >= q.options.length) {
-							throw new Error(`Ошибка в вопросе ${i + 1}: некорректный правильный ответ`);
-						}
-					});
-
-					// Автоматически заполняем форму и предлагаем сохранить
-					elements.testTitleInput.value = testData.title;
-					elements.testTimeLimit.value = testData.timeLimit || 10;
-					elements.testJson.value = JSON.stringify(testData.questions, null, 2);
-					
-					if (confirm(`Тест "${testData.title}" успешно загружен. Сохранить сейчас?`)) {
-						uploadTest(); // Вызываем функцию сохранения
-					}
-				} catch (e) {
-					alert(`Ошибка при загрузке файла: ${e.message}`);
-					console.error(e);
-				}
-			};
-			
-			reader.onerror = function() {
-				alert('Ошибка при чтении файла');
-			};
-			
-			reader.readAsText(file);
-		}
+            // Автоматически заполняем форму и предлагаем сохранить
+            elements.testTitleInput.value = testData.title;
+            elements.testTimeLimit.value = testData.timeLimit || 10;
+            elements.testJson.value = JSON.stringify(testData.questions, null, 2);
+            
+            if (confirm(`Тест "${testData.title}" успешно загружен. Сохранить сейчас?`)) {
+                uploadTest();
+            }
+        } catch (e) {
+            alert(`Ошибка при загрузке файла: ${e.message}`);
+            console.error(e);
+        }
+    };
+    
+    reader.onerror = function() {
+        alert('Ошибка при чтении файла');
+    };
+    
+    reader.readAsText(file);
+}
 
 // Навигация
 function backToMain() {
@@ -649,19 +703,23 @@ function backToMain() {
 }
 
 // Сохранение результатов в файл
-function saveResultsToFile() {
-    const userResults = store.getUserResults(store.currentUser);
-    const data = JSON.stringify(userResults, null, 2);
-    const blob = new Blob([data], {type: 'application/json'});
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `results_${store.currentUser}_${new Date().toISOString().slice(0,10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+async function saveResultsToFile() {
+    try {
+        const userResults = await store.getUserResults(store.currentUser.id);
+        const data = JSON.stringify(userResults, null, 2);
+        const blob = new Blob([data], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `results_${store.currentUser.name}_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        alert('Ошибка сохранения результатов: ' + err.message);
+    }
 }
 
 // Вспомогательные функции
