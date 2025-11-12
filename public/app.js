@@ -48,8 +48,8 @@ const store = {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                     name: username, 
-                    email: email,
-                    is_admin: isAdmin 
+                    email: email
+                    // Убираем is_admin из регистрации, т.к. API не принимает его
                 })
             });
             
@@ -65,16 +65,41 @@ const store = {
         }
     },
 
-    // Получение пользователя
-    async getUser(username) {
+    // Получение пользователя по email (т.к. API не имеет endpoint для получения по имени)
+    async getUserByEmail(email) {
         try {
-            const response = await fetch(`https://backend-production-5f60.up.railway.app/api/users/${username}`);
+            const response = await fetch(`https://backend-production-5f60.up.railway.app/api/users/email/${email}`);
             if (response.ok) {
                 return await response.json();
             }
             return null;
         } catch (err) {
             console.error('Ошибка получения пользователя:', err);
+            return null;
+        }
+    },
+
+    // Получение всех пользователей для поиска по имени
+    async getUsers() {
+        try {
+            const response = await fetch('https://backend-production-5f60.up.railway.app/api/users');
+            if (response.ok) {
+                return await response.json();
+            }
+            return [];
+        } catch (err) {
+            console.error('Ошибка получения пользователей:', err);
+            return [];
+        }
+    },
+
+    // Поиск пользователя по имени
+    async findUserByName(username) {
+        try {
+            const users = await this.getUsers();
+            return users.find(user => user.name === username) || null;
+        } catch (err) {
+            console.error('Ошибка поиска пользователя:', err);
             return null;
         }
     },
@@ -256,19 +281,22 @@ async function handleLogin(e) {
     const password = elements.passwordInput.value;
 
     try {
-        // Админский вход
+        // Админский вход (локальная проверка)
         if (username.toLowerCase() === 'admin') {
             if (password === 'admin123') {
-                let user = await store.getUser('admin');
-                if (!user) {
-                    user = await store.registerUser('admin', 'admin@example.com', true);
-                }
-                store.currentUser = user;
+                // Для админа создаем локального пользователя
+                const adminUser = {
+                    id: 0,
+                    name: 'admin',
+                    email: 'admin@example.com',
+                    is_admin: true
+                };
+                store.currentUser = adminUser;
                 store.isAdmin = true;
                 
                 // Сохраняем сессию
                 const authData = {
-                    user: user,
+                    user: adminUser,
                     isAdmin: true,
                     expires: Date.now() + 8 * 60 * 60 * 1000
                 };
@@ -282,17 +310,38 @@ async function handleLogin(e) {
         
         // Обычный пользователь
         if (username && email) {
-            let user = await store.getUser(username);
+            // Сначала ищем пользователя по имени
+            let user = await store.findUserByName(username);
+            
+            // Если пользователь не найден, регистрируем
             if (!user) {
-                user = await store.registerUser(username, email, false);
+                try {
+                    user = await store.registerUser(username, email);
+                } catch (regError) {
+                    // Если пользователь уже существует, но с другим email, ищем по email
+                    if (regError.message.includes('уже существует')) {
+                        user = await store.getUserByEmail(email);
+                        if (!user) {
+                            throw new Error('Пользователь с таким именем уже существует, но email не совпадает');
+                        }
+                    } else {
+                        throw regError;
+                    }
+                }
+            } else {
+                // Проверяем совпадение email если пользователь найден
+                if (user.email !== email) {
+                    throw new Error('Email не совпадает с зарегистрированным');
+                }
             }
+            
             store.currentUser = user;
-            store.isAdmin = false;
+            store.isAdmin = user.is_admin || false;
             
             // Сохраняем сессию
             const authData = {
                 user: user,
-                isAdmin: false,
+                isAdmin: store.isAdmin,
                 expires: Date.now() + 8 * 60 * 60 * 1000
             };
             localStorage.setItem('quizSystemAuth', JSON.stringify(authData));
@@ -303,6 +352,7 @@ async function handleLogin(e) {
         }
     } catch (err) {
         alert(err.message);
+        console.error('Ошибка входа:', err);
     }
 }
 
@@ -335,11 +385,14 @@ async function renderTestList() {
         list.style.listStyle = 'none';
         
         tests.forEach(test => {
+            const questions = Array.isArray(test.questions) ? 
+                test.questions : JSON.parse(test.questions);
+                
             const item = document.createElement('li');
             item.innerHTML = `
                 <div class="test-item">
                     <strong>${escapeHtml(test.title)}</strong><br>
-                    <small>${test.questions.length} вопросов, ${test.time_limit || 10} мин</small>
+                    <small>${questions.length} вопросов, ${test.time_limit || 10} мин</small>
                 </div>
             `;
             list.appendChild(item);
