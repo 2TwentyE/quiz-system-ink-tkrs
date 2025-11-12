@@ -13,6 +13,26 @@ const store = {
         this.checkAuth();
     },
     
+    // Проверка авторизации при загрузке
+    checkAuth() {
+        try {
+            const auth = localStorage.getItem('quizSystemAuth');
+            if (auth) {
+                const { user, isAdmin, expires } = JSON.parse(auth);
+                if (expires > Date.now()) {
+                    this.currentUser = user;
+                    this.isAdmin = isAdmin;
+                    showApp(); // Показываем приложение если пользователь авторизован
+                } else {
+                    this.clearAuth(); // Очищаем если сессия истекла
+                }
+            }
+        } catch (e) {
+            console.error("Ошибка проверки авторизации:", e);
+            this.clearAuth();
+        }
+    },
+    
     // Очистка данных авторизации
     clearAuth() {
         localStorage.removeItem('quizSystemAuth');
