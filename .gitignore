@@ -1,0 +1,13 @@
+# Node.js
+node_modules/
+.env
+*.log
+
+# Системные файлы
+.DS_store
+Thumbs.db
+
+#Резервные файлы редакторов
+*.swp
+*.swo
+*.bak

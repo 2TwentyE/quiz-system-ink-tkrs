@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <link rel="stylesheet" href="./styles.css">
+    <title>Система тестирования ИНК-ТКРС</title>
+</head>
+<body>
+<div class="container">
+
+    <!-- ===== АВТОРИЗАЦИЯ ===== -->
+    <div id="loginContainer" class="card">
+        <h1 class="text-center">ИНК-ТКРС</h1>
+        <p class="text-center subtitle">Система тестирования</p>
+
+        <div class="auth-tabs">
+            <button id="tabLogin" class="auth-tab active">Вход</button>
+            <button id="tabRegister" class="auth-tab">Регистрация</button>
+        </div>
+
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" placeholder="example@mail.ru" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Пароль:</label>
+                <div class="password-wrap">
+                    <input type="password" id="loginPassword" placeholder="Введите пароль" required>
+                    <button type="button" class="toggle-password" data-target="loginPassword">👁</button>
+                </div>
+            </div>
+            <div id="loginError" class="form-error hidden"></div>
+            <button type="submit" class="btn btn-primary btn-full">Войти</button>
+        </form>
+
+        <form id="registerForm" class="hidden">
+            <div class="form-group">
+                <label for="regName">Полное имя:</label>
+                <input type="text" id="regName" placeholder="Иванов Иван Иванович" required>
+            </div>
+            <div class="form-group">
+                <label for="regEmail">Email:</label>
+                <input type="email" id="regEmail" placeholder="example@mail.ru" required>
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Пароль:</label>
+                <div class="password-wrap">
+                    <input type="password" id="regPassword" placeholder="Минимум 6 символов" required>
+                    <button type="button" class="toggle-password" data-target="regPassword">👁</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="regPasswordConfirm">Подтвердите пароль:</label>
+                <div class="password-wrap">
+                    <input type="password" id="regPasswordConfirm" placeholder="Повторите пароль" required>
+                    <button type="button" class="toggle-password" data-target="regPasswordConfirm">👁</button>
+                </div>
+            </div>
+            <div id="registerError" class="form-error hidden"></div>
+            <button type="submit" class="btn btn-primary btn-full">Зарегистрироваться</button>
+        </form>
+
+        <div class="admin-login-link">
+            <button id="toggleAdminLogin" class="btn-link">Вход для администратора</button>
+        </div>
+        <form id="adminLoginForm" class="hidden">
+            <hr class="divider">
+            <h3 class="text-center">Администратор</h3>
+            <div class="form-group">
+                <label for="adminUsername">Имя пользователя:</label>
+                <input type="text" id="adminUsername" placeholder="admin" required>
+            </div>
+            <div class="form-group">
+                <label for="adminPassword">Пароль:</label>
+                <div class="password-wrap">
+                    <input type="password" id="adminPassword" placeholder="Пароль администратора" required>
+                    <button type="button" class="toggle-password" data-target="adminPassword">👁</button>
+                </div>
+            </div>
+            <div id="adminError" class="form-error hidden"></div>
+            <button type="submit" class="btn btn-secondary btn-full">Войти как администратор</button>
+        </form>
+    </div>
+
+    <!-- ===== ПРИЛОЖЕНИЕ ===== -->
+    <div id="appContainer" class="hidden">
+        <div class="user-bar">
+            <h2 id="userGreeting"></h2>
+            <button id="logoutBtn" class="btn btn-danger">Выйти</button>
+        </div>
+
+        <!-- Главный экран -->
+        <div id="mainScreen">
+            <div class="card">
+                <h2 class="text-center">Доступные тесты</h2>
+                <div id="testList"></div>
+                <div class="mt-3">
+                    <button id="startTest" class="btn btn-primary">Начать случайный тест</button>
+                    <button id="adminPanelBtn" class="btn btn-secondary hidden">Панель администратора</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Тестирование -->
+        <div id="testContainer" class="hidden">
+            <div class="card">
+                <div class="timer-container">
+                    <div id="timeLeft" class="timer">20:00</div>
+                    <div class="progress-container">
+                        <div id="progressBar" class="progress-bar"></div>
+                    </div>
+                </div>
+                <h2 id="testTitle"></h2>
+                <div id="questionsContainer"></div>
+                <div class="mobile-stack mt-3">
+                    <button id="submitTest" class="btn btn-primary">Завершить тест</button>
+                    <button id="backBtn" class="btn btn-outline">Назад</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Результаты -->
+        <div id="resultsContainer" class="hidden">
+            <div class="card">
+                <h2>Результаты тестирования</h2>
+                <div id="results"></div>
+                <div class="mobile-stack mt-3">
+                    <button id="saveResults" class="btn btn-primary">Скачать результаты (Excel)</button>
+                    <button id="newTest" class="btn btn-secondary">Пройти другой тест</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== АДМИН-ПАНЕЛЬ ===== -->
+        <div id="adminPanel" class="hidden">
+            <div class="card">
+                <h2>Панель администратора</h2>
+                <div class="admin-nav mb-3">
+                    <button id="showAddTest"  class="btn btn-primary">＋ Новый тест</button>
+                    <button id="showTestList" class="btn btn-secondary">Список тестов</button>
+                    <button id="exportAllResults" class="btn btn-secondary">Экспорт результатов</button>
+                    <button id="exportAllTests"   class="btn btn-secondary">Экспорт тестов</button>
+                    <button id="backToMain"   class="btn btn-outline">← На главную</button>
+                </div>
+
+                <!-- Форма создания / редактирования теста -->
+                <div id="addTestForm" class="hidden">
+                    <h3 id="editorTitle">Новый тест</h3>
+                    <input type="hidden" id="editingTestId">
+
+                    <div class="form-row">
+                        <div class="form-group" style="flex:2">
+                            <label>Название теста:</label>
+                            <input type="text" id="testTitleInput" placeholder="Введите название" required>
+                        </div>
+                        <div class="form-group" style="flex:1">
+                            <label>Время (минуты):</label>
+                            <input type="number" id="testTimeLimit" min="1" max="180" value="10" required>
+                        </div>
+                    </div>
+
+                    <!-- Конструктор вопросов -->
+                    <div id="questionsEditor"></div>
+
+                    <button id="addQuestionBtn" class="btn btn-outline btn-full mt-2">＋ Добавить вопрос</button>
+
+                    <div class="form-group mt-3">
+                        <label>Или загрузить из файла JSON / Excel:</label>
+                        <input type="file" id="testFile" accept=".json,.xlsx,.xls">
+                        <button id="loadFromFile" class="btn btn-secondary mt-2">Загрузить из файла</button>
+                    </div>
+
+                    <div class="mobile-stack mt-3">
+                        <button id="uploadTest"   class="btn btn-primary">Сохранить тест</button>
+                        <button id="cancelEdit"   class="btn btn-outline">Отмена</button>
+                    </div>
+                </div>
+
+                <!-- Список тестов -->
+                <div id="adminTestList" class="hidden">
+                    <h3>Список тестов</h3>
+                    <div id="testsContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SheetJS для Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
