@@ -31,7 +31,44 @@
 
 ## Структура базы данных
 
-![Image alt](https://github.com/2TwentyE/quiz-system-ink-tkrs/blob/main/DB_white.png?raw=true)
+```
+users
+├── id          SERIAL PK
+├── username    VARCHAR UNIQUE
+├── full_name   VARCHAR
+├── email       VARCHAR UNIQUE
+├── password    VARCHAR (bcrypt-хеш)
+├── is_admin    BOOLEAN
+└── created_at  TIMESTAMP
+
+tests
+├── id          SERIAL PK
+├── title       VARCHAR UNIQUE
+├── time_limit  INTEGER (минуты)
+└── created_at  TIMESTAMP
+
+questions
+├── id             SERIAL PK
+├── test_id        INTEGER FK → tests.id (CASCADE)
+├── question_text  TEXT
+├── options        JSONB   (массив вариантов ответов)
+├── correct_answer INTEGER (индекс правильного варианта)
+└── order_num      INTEGER
+
+results
+├── id               SERIAL PK
+├── user_id          INTEGER FK → users.id
+├── test_id          INTEGER FK → tests.id
+├── score            INTEGER (процент)
+├── correct_answers  INTEGER
+├── total_questions  INTEGER
+├── answers          JSONB   ({"0": 2, "1": 0, ...})
+└── completed_at     TIMESTAMP
+```
+
+**Связи:** `users` 1→N `results`, `tests` 1→N `questions`, `tests` 1→N `results`
+
+---
 
 ## API эндпоинты
 
